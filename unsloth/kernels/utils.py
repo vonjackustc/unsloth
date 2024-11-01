@@ -61,8 +61,10 @@ CUDA_STREAM = None
 get_ptr = bnb.functional.get_ptr
 import ctypes
 cdequantize_blockwise_fp32      = bnb.functional.lib.cdequantize_blockwise_fp32
+cdequantize_blockwise_fp32_nf4  = bnb.functional.lib.cdequantize_blockwise_fp32_nf4
 cdequantize_blockwise_fp16_nf4  = bnb.functional.lib.cdequantize_blockwise_fp16_nf4
 cdequantize_blockwise_bf16_nf4  = bnb.functional.lib.cdequantize_blockwise_bf16_nf4
+cgemm_4bit_inference_naive_fp32 = bnb.functional.lib.cgemm_4bit_inference_naive_fp32
 cgemm_4bit_inference_naive_fp16 = bnb.functional.lib.cgemm_4bit_inference_naive_fp16
 cgemm_4bit_inference_naive_bf16 = bnb.functional.lib.cgemm_4bit_inference_naive_bf16
 
@@ -152,7 +154,8 @@ if HAS_CUDA_STREAM:
         )
         out_absmax += offset
 
-        fx = cdequantize_blockwise_fp16_nf4 if dtype == torch.float16 else \
+        fx = cdequantize_blockwise_fp32_nf4 if dtype == torch.float32 else \
+             cdequantize_blockwise_fp16_nf4 if dtype == torch.float16 else \
              cdequantize_blockwise_bf16_nf4
         fx(get_ptr(None), get_ptr(W), ptr_out_absmax, get_ptr(out),
            ctypes.c_int(blocksize), ctypes.c_int(out.numel()), CUDA_STREAM,)
@@ -202,7 +205,8 @@ else:
         )
         out_absmax += offset
 
-        fx = cdequantize_blockwise_fp16_nf4 if dtype == torch.float16 else \
+        fx = cdequantize_blockwise_fp32_nf4 if dtype == torch.float16 else \
+             cdequantize_blockwise_fp16_nf4 if dtype == torch.float16 else \
              cdequantize_blockwise_bf16_nf4
         fx(get_ptr(None), get_ptr(W), ptr_out_absmax, get_ptr(out),
            ctypes.c_int(blocksize), ctypes.c_int(out.numel()),)
@@ -272,8 +276,9 @@ if HAS_CUDA_STREAM:
         df += offset
         absmax = df
 
-        fx = cgemm_4bit_inference_naive_fp16 if dtype == torch.float16 else \
-            cgemm_4bit_inference_naive_bf16
+        fx = cgemm_4bit_inference_naive_fp32 if dtype == torch.float32 else \
+             cgemm_4bit_inference_naive_fp16 if dtype == torch.float16 else \
+             cgemm_4bit_inference_naive_bf16
 
         blocksize = ctypes.c_int32(blocksize)
         fx(m, n, k, get_ptr(X), get_ptr(W), get_ptr(absmax), get_ptr(stats), get_ptr(out),
@@ -336,8 +341,9 @@ else:
         df += offset
         absmax = df
 
-        fx = cgemm_4bit_inference_naive_fp16 if dtype == torch.float16 else \
-            cgemm_4bit_inference_naive_bf16
+        fx = cgemm_4bit_inference_naive_fp32 if dtype == torch.float32 else \
+             cgemm_4bit_inference_naive_fp16 if dtype == torch.float16 else \
+             cgemm_4bit_inference_naive_bf16
 
         blocksize = ctypes.c_int32(blocksize)
         fx(m, n, k, get_ptr(X), get_ptr(W), get_ptr(absmax), get_ptr(stats), get_ptr(out),
