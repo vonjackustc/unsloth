@@ -1315,7 +1315,7 @@ class LongRopeRotaryEmbedding(torch.nn.Module):
         # self._set_cos_sin_cache(seq_len=self.current_rope_size, device=device, dtype=torch.get_default_dtype())
 
         # Short sequences
-        dtype = torch.bfloat16 if is_bfloat16_supported() else torch.float16
+        dtype = torch.bfloat16 if is_bfloat16_supported() else torch.float32
         t = torch.arange(original_max_position_embeddings, device=self.short_inv_freq.device, dtype=torch.int64).float()
         freqs = torch.outer(t, self.short_inv_freq)
         emb = torch.cat((freqs, freqs), dim=-1)
@@ -1523,10 +1523,10 @@ class FastLlamaModel:
         get_statistics() # For debugging - we use a download counter to see if environments are not breaking 
 
         if dtype is None:
-            dtype = torch.float16 if not SUPPORTS_BFLOAT16 else torch.bfloat16
+            dtype = torch.float32 if not SUPPORTS_BFLOAT16 else torch.bfloat16
         elif dtype == torch.bfloat16 and not SUPPORTS_BFLOAT16:
-            logger.warning_once("Device does not support bfloat16. Will change to float16.")
-            dtype = torch.float16
+            logger.warning_once("Device does not support bfloat16. Will change to float32.")
+            dtype = torch.float32
 
         assert(dtype == torch.float16 or dtype == torch.bfloat16 or dtype == torch.float32)
 
@@ -2476,7 +2476,8 @@ class FastLlamaModel:
         dtype = model.config.torch_dtype
         
         if type(dtype) is str:
-            if   dtype ==  "float16": dtype = torch.float16
+            if   dtype ==  "float32": dtype = torch.float32
+            elif dtype ==  "float16": dtype = torch.float16
             elif dtype == "bfloat16": dtype = torch.bfloat16
         pass
 
